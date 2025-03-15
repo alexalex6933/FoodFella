@@ -98,7 +98,7 @@ const Home = () => {
             Back to List
           </button>
         </div>
-        <Map
+        {/* <Map
           mapboxAccessToken="YOUR_MAPBOX_TOKEN"
           initialViewState={{
             longitude: userLocation?.lng || 151.2093,
@@ -107,7 +107,8 @@ const Home = () => {
           }}
           style={{ width: '100%', height: '100%' }}
           mapStyle="mapbox://styles/mapbox/streets-v11"
-        />
+        /> */}
+        <img src="../../mapimg.png"/>
       </div>
     );
   }

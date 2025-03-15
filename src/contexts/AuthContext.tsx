@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         navigate('/merchant/dashboard');
       } else if (user.type === 'customer') {
         // added so you can actually nav to customer dashboard
-        navigate('customer/dashboard')
+        navigate('/')
       } else {
         // If there was a previous location, go back to it, otherwise go to home
         navigate(-1);
