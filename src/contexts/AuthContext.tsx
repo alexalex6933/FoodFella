@@ -51,12 +51,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+
   const fetchUserProfile = async (authToken: string) => {
     try {
       setIsLoading(true);
       const response = await getCurrentUser(authToken);
       if (response.status === 'success' && response.data?.user) {
         setUser(response.data.user);
+
       } else {
         // Token is invalid or expired
         localStorage.removeItem('token');
