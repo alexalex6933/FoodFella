@@ -21,8 +21,8 @@ function App() {
             <div className="min-h-screen bg-[#f7f9f7]">
               <Navbar />
               <Routes>
-                <Route path="/" element={<Auth />} />
-                <Route path="/customer/dashboard" element={<Home />} />
+                <Route path="/" element={<Home />} />
+                <Route path="/auth" element={<Auth />} />
                 <Route path="/restaurant/:id" element={<RestaurantDetail />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
