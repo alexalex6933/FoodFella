@@ -1,38 +1,84 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from './contexts/AuthContext';
-import { CartProvider } from './contexts/CartContext';
-import { PriceProvider } from './contexts/PriceContext';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Auth from './pages/Auth';
 import RestaurantDetail from './pages/RestaurantDetail';
-import Cart from './pages/Cart';
-import MerchantDashboard from './pages/MerchantDashboard';
-import Orders from './pages/Orders';
-import Settings from './pages/Settings';
+import RestaurantList from './pages/RestaurantList';
+import UserProfile from './pages/UserProfile';
+import NotFound from './pages/NotFound';
+import './App.css';
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#ff5722',
+    },
+    secondary: {
+      main: '#2196f3',
+    },
+    background: {
+      default: '#f5f5f5',
+    },
+  },
+  typography: {
+    fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+    h1: {
+      fontWeight: 700,
+    },
+    h2: {
+      fontWeight: 600,
+    },
+    h3: {
+      fontWeight: 600,
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 8,
+          textTransform: 'none',
+          fontWeight: 600,
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+        },
+      },
+    },
+  },
+});
 
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <CartProvider>
-          <PriceProvider>
-            <div className="min-h-screen bg-[#f7f9f7]">
-              <Navbar />
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AuthProvider>
+          <div className="App">
+            <Navbar />
+            <main>
               <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/restaurant/:id" element={<RestaurantDetail />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/merchant/dashboard" element={<MerchantDashboard />} />
-                <Route path="/orders" element={<Orders />} />
-                <Route path="/settings" element={<Settings />} />
+                <Route path="/login" element={<Auth />} />
+                <Route path="/register" element={<Auth isRegister />} />
+                <Route path="/restaurants" element={<RestaurantList />} />
+                <Route path="/restaurants/:id" element={<RestaurantDetail />} />
+                <Route path="/profile" element={<UserProfile />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
-            </div>
-          </PriceProvider>
-        </CartProvider>
-      </AuthProvider>
+            </main>
+          </div>
+        </AuthProvider>
+      </ThemeProvider>
     </Router>
   );
 }

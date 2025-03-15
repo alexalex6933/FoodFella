@@ -1,12 +1,12 @@
 const { getCollection } = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
+import API_URL from '../config/api.js';
 
 // Get all restaurants
 const getAllRestaurants = async () => {
-  const restaurantsCollection = await getCollection('restaurants');
-  const response = await restaurantsCollection.find({});
-  return response.data || [];
+  const response = await fetch(`${API_URL}/api/restaurants`);
+  return response.json();
 };
 
 // Search restaurants by name
@@ -199,6 +199,27 @@ const calculateCosineSimilarity = (vec1, vec2) => {
   return dotProduct / (mag1 * mag2);
 };
 
+// Get auth token from localStorage
+const getToken = () => localStorage.getItem('token');
+
+export const getRestaurantById = async (id) => {
+  const response = await fetch(`${API_URL}/api/restaurants/${id}`);
+  return response.json();
+};
+
+export const createRestaurant = async (restaurantData) => {
+  const response = await fetch(`${API_URL}/api/restaurants`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getToken()}`,
+    },
+    body: JSON.stringify(restaurantData),
+  });
+  
+  return response.json();
+};
+
 module.exports = {
   getAllRestaurants,
   searchRestaurantsByName,
@@ -207,5 +228,7 @@ module.exports = {
   getAllCuisineTypes,
   getAllCities,
   storeRestaurantVector,
-  searchRestaurantsBySimilarity
+  searchRestaurantsBySimilarity,
+  getRestaurantById,
+  createRestaurant
 }; 
