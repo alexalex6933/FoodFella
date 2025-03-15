@@ -23,7 +23,3 @@ services:
         sync: 
       - key: OPENAI_API_KEY
         sync: false
-    disk:
-      name: astra-secure-connect
-      mountPath: /opt/render/project/src/secure-connect
-      sizeGB: 1

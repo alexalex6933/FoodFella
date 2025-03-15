@@ -1,4 +1,4 @@
-const { client } = require('../config/database');
+const { getCollection } = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 
@@ -18,25 +18,20 @@ class User {
       
       const now = new Date();
       
-      const query = `
-        INSERT INTO users (
-          id, email, password, first_name, last_name, role, created_at, updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `;
+      const usersCollection = await getCollection('users');
       
-      const params = [
+      const user = {
         id,
-        userData.email.toLowerCase(),
-        hashedPassword,
-        userData.firstName,
-        userData.lastName,
-        userData.role || 'customer',
-        now,
-        now
-      ];
+        email: userData.email.toLowerCase(),
+        password: hashedPassword,
+        first_name: userData.firstName,
+        last_name: userData.lastName,
+        role: userData.role || 'customer',
+        created_at: now,
+        updated_at: now
+      };
       
-      await client.execute(query, params, { prepare: true });
+      await usersCollection.create(id, user);
       
       // Return user without password
       return {
@@ -61,14 +56,16 @@ class User {
    */
   static async findByEmail(email) {
     try {
-      const query = 'SELECT * FROM users WHERE email = ? ALLOW FILTERING';
-      const result = await client.execute(query, [email.toLowerCase()], { prepare: true });
+      const usersCollection = await getCollection('users');
       
-      if (result.rowLength === 0) {
+      // Query by email using the findOne method
+      const response = await usersCollection.find({ email: email.toLowerCase() });
+      
+      if (!response.data || response.data.length === 0) {
         return null;
       }
       
-      const user = result.first();
+      const user = response.data[0];
       
       return {
         id: user.id,
@@ -93,14 +90,15 @@ class User {
    */
   static async findById(id) {
     try {
-      const query = 'SELECT * FROM users WHERE id = ?';
-      const result = await client.execute(query, [id], { prepare: true });
+      const usersCollection = await getCollection('users');
       
-      if (result.rowLength === 0) {
+      const response = await usersCollection.get(id);
+      
+      if (!response || !response.data) {
         return null;
       }
       
-      const user = result.first();
+      const user = response.data;
       
       return {
         id: user.id,
@@ -131,23 +129,21 @@ class User {
         throw new Error('User not found');
       }
       
+      const usersCollection = await getCollection('users');
+      
       const now = new Date();
-      const updateFields = [];
-      const params = [];
+      const updateData = { updated_at: now };
       
       if (userData.firstName) {
-        updateFields.push('first_name = ?');
-        params.push(userData.firstName);
+        updateData.first_name = userData.firstName;
       }
       
       if (userData.lastName) {
-        updateFields.push('last_name = ?');
-        params.push(userData.lastName);
+        updateData.last_name = userData.lastName;
       }
       
       if (userData.email) {
-        updateFields.push('email = ?');
-        params.push(userData.email.toLowerCase());
+        updateData.email = userData.email.toLowerCase();
       }
       
       if (userData.password) {
@@ -155,23 +151,10 @@ class User {
           userData.password,
           parseInt(process.env.BCRYPT_SALT_ROUNDS, 10)
         );
-        updateFields.push('password = ?');
-        params.push(hashedPassword);
+        updateData.password = hashedPassword;
       }
       
-      updateFields.push('updated_at = ?');
-      params.push(now);
-      
-      // Add ID at the end for WHERE clause
-      params.push(id);
-      
-      const query = `
-        UPDATE users
-        SET ${updateFields.join(', ')}
-        WHERE id = ?
-      `;
-      
-      await client.execute(query, params, { prepare: true });
+      await usersCollection.update(id, updateData);
       
       // Get updated user
       return await this.findById(id);
@@ -188,8 +171,9 @@ class User {
    */
   static async delete(id) {
     try {
-      const query = 'DELETE FROM users WHERE id = ?';
-      await client.execute(query, [id], { prepare: true });
+      const usersCollection = await getCollection('users');
+      
+      await usersCollection.delete(id);
       
       return true;
     } catch (error) {
