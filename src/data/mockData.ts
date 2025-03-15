@@ -564,10 +564,13 @@ export const deleteMenuItem = (id: string) => {
 };
 
 export const updateOrderStatus = (orderId: string, status: Order['status']) => {
-  const updatedOrders = mockOrders.map(order =>
-    order.id === orderId ? { ...order, status } : order
-  );
-  return updatedOrders;
+  const order = mockOrders.find(order => order.id === orderId);
+  if (order) {
+      order.status = status;
+      return order;
+  }
+
+  return null;
 };
 
 export const addReview = (review: Omit<Review, 'id' | 'date'>) => {
