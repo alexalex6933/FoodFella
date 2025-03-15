@@ -592,50 +592,84 @@ Authorization: Bearer jwt_token_here
 
 ### Search Restaurants
 
-**Endpoint:** `GET /search?cuisineType=Italian&city=New York&priceRange=$$&minRating=4&page=1&limit=10`
+```
+GET /api/search/restaurants
+```
 
-**Response:**
+Search for restaurants using various criteria.
+
+**Query Parameters**:
+- `name`: Search by restaurant name
+- `cuisine`: Search by cuisine type
+- `city`: Search by city
+- `query`: Semantic search using natural language (uses vector search)
+
+**Response**:
 ```json
 {
   "status": "success",
+  "results": 2,
   "data": {
     "restaurants": [
       {
-        "id": "restaurant_id",
-        "name": "Restaurant Name",
-        "description": "Restaurant description",
-        "cuisineType": "Italian",
-        "priceRange": "$$",
-        "merchantId": "merchant_id",
-        "locations": [
-          {
-            "restaurantId": "restaurant_id",
-            "locationId": "location_id",
-            "address": "123 Main St",
-            "city": "New York",
-            "state": "NY",
-            "zipCode": "10001",
-            "latitude": 40.7128,
-            "longitude": -74.0060
-          }
-        ],
-        "images": [
-          {
-            "restaurantId": "restaurant_id",
-            "imageId": "image_id",
-            "imageUrl": "https://example.com/image.jpg",
-            "isPrimary": true
-          }
-        ],
-        "rating": 4.5
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Pasta Palace",
+        "description": "Authentic Italian pasta dishes",
+        "cuisine_type": "Italian",
+        "price_range": "moderate",
+        "merchant_id": "7c11e1ce-1144-42c7-8bfd-e3b8d2696000"
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440001",
+        "name": "Pizza Paradise",
+        "description": "New York style pizza",
+        "cuisine_type": "Italian",
+        "price_range": "budget",
+        "merchant_id": "7c11e1ce-1144-42c7-8bfd-e3b8d2696001"
       }
-    ],
-    "pagination": {
-      "total": 30,
-      "page": 1,
-      "limit": 10,
-      "totalPages": 3
-    }
+    ]
+  }
+}
+```
+
+### Semantic Search
+
+```
+GET /api/search/semantic
+```
+
+Search for restaurants using natural language queries with vector similarity.
+
+**Query Parameters**:
+- `query`: Natural language search query (required)
+- `limit`: Maximum number of results to return (default: 10)
+
+**Response**:
+```json
+{
+  "status": "success",
+  "results": 2,
+  "data": {
+    "restaurants": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Pasta Palace",
+        "description": "Authentic Italian pasta dishes",
+        "cuisine_type": "Italian",
+        "price_range": "moderate",
+        "merchant_id": "7c11e1ce-1144-42c7-8bfd-e3b8d2696000",
+        "similarity": 0.89
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440001",
+        "name": "Pizza Paradise",
+        "description": "New York style pizza",
+        "cuisine_type": "Italian",
+        "price_range": "budget",
+        "merchant_id": "7c11e1ce-1144-42c7-8bfd-e3b8d2696001",
+        "similarity": 0.76
+      }
+    ]
   }
 }
 ```
