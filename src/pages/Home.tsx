@@ -122,7 +122,7 @@ const Home = () => {
         />
         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <h1 className="text-3xl md:text-4xl font-bold text-white text-center px-4">
-            creating a world where no meal goes to waste.
+            Creating A World Where No Meal Goes To Waste.
           </h1>
         </div>
       </div>

@@ -108,6 +108,7 @@ const MerchantDashboard = () => {
   };
 
   const handleUpdateOrderStatus = (orderId: string, newStatus: 'processing' | 'cooking' | 'ready') => {
+    console.log("status " + newStatus)
     updateOrderStatus(orderId, newStatus);
     // Force a re-render by updating the state
     setItems([...items]);
@@ -324,7 +325,7 @@ const MerchantDashboard = () => {
                   <div>
                     <h3 className="font-semibold">{item.name}</h3>
                     <div className="text-sm text-gray-600">
-                      <span className="line-through">${item.price.toFixed(2)}</span>
+                      <span>${item.price.toFixed(2)}</span>
                       {item.priceDepreciation?.enabled && (
                         <span className="text-[#1db954] ml-2">
                           Min: ${item.priceDepreciation.lowerBound.toFixed(2)}

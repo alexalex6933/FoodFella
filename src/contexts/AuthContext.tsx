@@ -31,6 +31,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('user', JSON.stringify(user));
       if (user.type === 'merchant') {
         navigate('/merchant/dashboard');
+      } else if (user.type === 'customer') {
+        // added so you can actually nav to customer dashboard
+        navigate('customer/dashboard')
       } else {
         // If there was a previous location, go back to it, otherwise go to home
         navigate(-1);
