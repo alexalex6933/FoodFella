@@ -52,12 +52,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
 
-  const fetchUserProfile = async (authToken: string) => {
-    try {
-      setIsLoading(true);
-      const response = await getCurrentUser(authToken);
-      if (response.status === 'success' && response.data?.user) {
-        setUser(response.data.user);
+  const login = async (email: string, password: string) => {
+    const user = mockUsers.find(u => u.email === email && u.password === password);
+    if (user) {
+      setUser(user);
+      localStorage.setItem('user', JSON.stringify(user));
+      if (user.type === 'merchant') {
+        navigate('/merchant/dashboard');
+      } else if (user.type === 'customer') {
+        // added so you can actually nav to customer dashboard
+        navigate('customer/dashboard')
 
       } else {
         // Token is invalid or expired

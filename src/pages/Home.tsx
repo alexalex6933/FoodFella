@@ -249,6 +249,34 @@ const Home = () => {
       </Box>
 
 
+  return (
+    <div>
+      <div className="w-full h-[300px] relative mb-8">
+        <img
+          src="https://images.unsplash.com/photo-1504674900247-0877df9cc836"
+          alt="Food Banner"
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <h1 className="text-3xl md:text-4xl font-bold text-white text-center px-4">
+            Creating A World Where No Meal Goes To Waste.
+          </h1>
+        </div>
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Restaurants Near You</h1>
+          <button
+            onClick={() => setShowMap(true)}
+            className="flex items-center space-x-2 bg-[#1db954] text-white px-4 py-2 rounded-full hover:bg-[#169c46] transition-colors"
+          >
+            <MapPin className="h-5 w-5" />
+            <span>View Map</span>
+          </button>
+        </div>
+
+
       {/* Error Message */}
       {error && (
         <Paper sx={{ p: 2, mb: 4, bgcolor: 'error.light', color: 'error.contrastText' }}>
