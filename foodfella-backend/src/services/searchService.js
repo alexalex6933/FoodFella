@@ -1,196 +1,143 @@
 const { getCollection } = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
 const axios = require('axios');
-import API_URL from '../config/api.js';
 
 // Get all restaurants
 const getAllRestaurants = async () => {
-  const response = await fetch(`${API_URL}/api/restaurants`);
-  return response.json();
+  try {
+    const collection = await getCollection('restaurants');
+    const restaurants = await collection.find({}).toArray();
+    return restaurants;
+  } catch (error) {
+    console.error('Error getting all restaurants:', error);
+    throw error;
+  }
 };
 
 // Search restaurants by name
 const searchRestaurantsByName = async (name) => {
-  const restaurantsCollection = await getCollection('restaurants');
-  const response = await restaurantsCollection.find({ name: { $regex: name } });
-  return response.data || [];
+  try {
+    const restaurantsCollection = await getCollection('restaurants');
+    const restaurants = await restaurantsCollection.find({ 
+      name: { $regex: name, $options: 'i' } 
+    }).toArray();
+    return restaurants;
+  } catch (error) {
+    console.error('Error searching restaurants by name:', error);
+    throw error;
+  }
 };
 
 // Search restaurants by cuisine
 const searchRestaurantsByCuisine = async (cuisine) => {
-  const cuisineCollection = await getCollection('restaurants_by_cuisine');
-  const response = await cuisineCollection.find({ cuisine_type: cuisine });
-  
-  // Get full restaurant details for each result
-  const restaurants = [];
-  if (response.data && response.data.length > 0) {
+  try {
     const restaurantsCollection = await getCollection('restaurants');
-    
-    for (const row of response.data) {
-      const restaurantResponse = await restaurantsCollection.get(row.restaurant_id);
-      if (restaurantResponse && restaurantResponse.data) {
-        restaurants.push(restaurantResponse.data);
-      }
-    }
+    const restaurants = await restaurantsCollection.find({ 
+      cuisine_type: cuisine 
+    }).toArray();
+    return restaurants;
+  } catch (error) {
+    console.error('Error searching restaurants by cuisine:', error);
+    throw error;
   }
-  
-  return restaurants;
 };
 
 // Search restaurants by location
 const searchRestaurantsByLocation = async (city) => {
-  const locationCollection = await getCollection('restaurants_by_location');
-  const response = await locationCollection.find({ city: city });
-  
-  // Get full restaurant details for each result
-  const restaurants = [];
-  if (response.data && response.data.length > 0) {
+  try {
     const restaurantsCollection = await getCollection('restaurants');
-    
-    for (const row of response.data) {
-      const restaurantResponse = await restaurantsCollection.get(row.restaurant_id);
-      if (restaurantResponse && restaurantResponse.data) {
-        restaurants.push(restaurantResponse.data);
-      }
-    }
+    const restaurants = await restaurantsCollection.find({
+      'address.city': city
+    }).toArray();
+    return restaurants;
+  } catch (error) {
+    console.error('Error searching restaurants by location:', error);
+    throw error;
   }
-  
-  return restaurants;
 };
 
 // Get all cuisine types
 const getAllCuisineTypes = async () => {
-  const cuisineCollection = await getCollection('restaurants_by_cuisine');
-  const response = await cuisineCollection.find({}, { fields: ['cuisine_type'] });
-  
-  // Extract unique cuisine types
-  const cuisineTypes = new Set();
-  if (response.data && response.data.length > 0) {
-    response.data.forEach(row => cuisineTypes.add(row.cuisine_type));
+  try {
+    const restaurantsCollection = await getCollection('restaurants');
+    const cuisines = await restaurantsCollection.distinct('cuisine_type');
+    return cuisines;
+  } catch (error) {
+    console.error('Error getting all cuisine types:', error);
+    throw error;
   }
-  
-  return Array.from(cuisineTypes);
 };
 
 // Get all cities
 const getAllCities = async () => {
-  const locationCollection = await getCollection('restaurants_by_location');
-  const response = await locationCollection.find({}, { fields: ['city'] });
-  
-  // Extract unique cities
-  const cities = new Set();
-  if (response.data && response.data.length > 0) {
-    response.data.forEach(row => cities.add(row.city));
-  }
-  
-  return Array.from(cities);
-};
-
-// Generate embeddings for text using OpenAI API
-const generateEmbedding = async (text) => {
   try {
-    const response = await axios.post(
-      'https://api.openai.com/v1/embeddings',
-      {
-        input: text,
-        model: 'text-embedding-ada-002'
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-    
-    return response.data.data[0].embedding;
+    const restaurantsCollection = await getCollection('restaurants');
+    const cities = await restaurantsCollection.distinct('address.city');
+    return cities;
   } catch (error) {
-    console.error('Error generating embedding:', error);
+    console.error('Error getting all cities:', error);
     throw error;
   }
 };
 
-// Store restaurant description vector
-const storeRestaurantVector = async (restaurantId, description) => {
+// Semantic search for restaurants
+const semanticSearch = async (query) => {
   try {
-    const embedding = await generateEmbedding(description);
-    const id = uuidv4();
+    // Get all restaurants
+    const restaurantsCollection = await getCollection('restaurants');
+    const restaurants = await restaurantsCollection.find({}).toArray();
     
-    const vectorCollection = await getCollection('restaurant_vectors');
-    
-    await vectorCollection.create(id, {
-      id,
-      restaurant_id: restaurantId,
-      description_vector: embedding,
-      created_at: new Date()
-    });
-    
-    return id;
-  } catch (error) {
-    console.error('Error storing restaurant vector:', error);
-    throw error;
-  }
-};
-
-// Search restaurants by semantic similarity
-const searchRestaurantsBySimilarity = async (searchText, limit = 10) => {
-  try {
-    // Generate embedding for search text
-    const searchEmbedding = await generateEmbedding(searchText);
-    
-    // Perform ANN search
-    // Note: This is a simplified approach as Astra REST API doesn't directly support vector search
-    // In a production environment, you would use the Astra vector search capabilities
-    const vectorCollection = await getCollection('restaurant_vectors');
-    const response = await vectorCollection.find({});
-    
-    if (!response.data || response.data.length === 0) {
-      return [];
-    }
-    
-    // Calculate similarity manually (not efficient, but works for demo)
-    const results = response.data.map(row => {
-      const similarity = calculateCosineSimilarity(searchEmbedding, row.description_vector);
+    // Calculate similarity scores
+    const results = restaurants.map(restaurant => {
+      const nameScore = calculateSimilarity(query, restaurant.name);
+      const descriptionScore = calculateSimilarity(query, restaurant.description);
+      const cuisineScore = calculateSimilarity(query, restaurant.cuisine_type);
+      
+      // Weighted average of scores
+      const similarity = (nameScore * 0.5) + (descriptionScore * 0.3) + (cuisineScore * 0.2);
+      
       return {
-        restaurant_id: row.restaurant_id,
+        ...restaurant,
         similarity
       };
     });
     
-    // Sort by similarity and take top results
-    results.sort((a, b) => a.similarity - b.similarity);
-    const topResults = results.slice(0, limit);
+    // Sort by similarity score (descending)
+    results.sort((a, b) => b.similarity - a.similarity);
     
-    // Get full restaurant details
-    const restaurants = [];
-    const restaurantsCollection = await getCollection('restaurants');
-    
-    for (const row of topResults) {
-      const restaurantResponse = await restaurantsCollection.get(row.restaurant_id);
-      if (restaurantResponse && restaurantResponse.data) {
-        const restaurant = restaurantResponse.data;
-        restaurant.similarity = row.similarity;
-        restaurants.push(restaurant);
-      }
-    }
-    
-    return restaurants;
+    // Filter out low-scoring results
+    const threshold = 0.1;
+    return results.filter(result => result.similarity > threshold);
   } catch (error) {
-    console.error('Error searching restaurants by similarity:', error);
+    console.error('Error performing semantic search:', error);
     throw error;
   }
 };
 
-// Helper function to calculate cosine similarity
-const calculateCosineSimilarity = (vec1, vec2) => {
+// Calculate cosine similarity between two strings
+const calculateSimilarity = (str1, str2) => {
+  if (!str1 || !str2) return 0;
+  
+  // Convert strings to lowercase and split into words
+  const words1 = str1.toLowerCase().split(/\W+/);
+  const words2 = str2.toLowerCase().split(/\W+/);
+  
+  // Create a set of all unique words
+  const uniqueWords = new Set([...words1, ...words2]);
+  
+  // Create vectors
+  const vector1 = Array.from(uniqueWords).map(word => words1.filter(w => w === word).length);
+  const vector2 = Array.from(uniqueWords).map(word => words2.filter(w => w === word).length);
+  
+  // Calculate dot product
   let dotProduct = 0;
   let mag1 = 0;
   let mag2 = 0;
   
-  for (let i = 0; i < vec1.length; i++) {
-    dotProduct += vec1[i] * vec2[i];
-    mag1 += vec1[i] * vec1[i];
-    mag2 += vec2[i] * vec2[i];
+  for (let i = 0; i < vector1.length; i++) {
+    dotProduct += vector1[i] * vector2[i];
+    mag1 += vector1[i] * vector1[i];
+    mag2 += vector2[i] * vector2[i];
   }
   
   mag1 = Math.sqrt(mag1);
@@ -199,25 +146,86 @@ const calculateCosineSimilarity = (vec1, vec2) => {
   return dotProduct / (mag1 * mag2);
 };
 
-// Get auth token from localStorage
-const getToken = () => localStorage.getItem('token');
-
-export const getRestaurantById = async (id) => {
-  const response = await fetch(`${API_URL}/api/restaurants/${id}`);
-  return response.json();
+// Get restaurant by ID
+const getRestaurantById = async (id) => {
+  try {
+    const restaurantsCollection = await getCollection('restaurants');
+    const restaurant = await restaurantsCollection.findOne({ id });
+    return restaurant;
+  } catch (error) {
+    console.error('Error getting restaurant by ID:', error);
+    throw error;
+  }
 };
 
-export const createRestaurant = async (restaurantData) => {
-  const response = await fetch(`${API_URL}/api/restaurants`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${getToken()}`,
-    },
-    body: JSON.stringify(restaurantData),
-  });
-  
-  return response.json();
+// Create a new restaurant
+const createRestaurant = async (restaurantData, userId) => {
+  try {
+    const restaurantsCollection = await getCollection('restaurants');
+    const newRestaurant = {
+      id: uuidv4(),
+      ...restaurantData,
+      merchant_id: userId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    await restaurantsCollection.insertOne(newRestaurant);
+    return newRestaurant;
+  } catch (error) {
+    console.error('Error creating restaurant:', error);
+    throw error;
+  }
+};
+
+// Update a restaurant
+const updateRestaurant = async (id, restaurantData, userId) => {
+  try {
+    const restaurantsCollection = await getCollection('restaurants');
+    const restaurant = await restaurantsCollection.findOne({ id });
+    
+    if (!restaurant) {
+      throw new Error('Restaurant not found');
+    }
+    
+    if (restaurant.merchant_id !== userId) {
+      throw new Error('Unauthorized to update this restaurant');
+    }
+    
+    const updatedRestaurant = {
+      ...restaurant,
+      ...restaurantData,
+      updated_at: new Date().toISOString()
+    };
+    
+    await restaurantsCollection.updateOne({ id }, { $set: updatedRestaurant });
+    return updatedRestaurant;
+  } catch (error) {
+    console.error('Error updating restaurant:', error);
+    throw error;
+  }
+};
+
+// Delete a restaurant
+const deleteRestaurant = async (id, userId) => {
+  try {
+    const restaurantsCollection = await getCollection('restaurants');
+    const restaurant = await restaurantsCollection.findOne({ id });
+    
+    if (!restaurant) {
+      throw new Error('Restaurant not found');
+    }
+    
+    if (restaurant.merchant_id !== userId) {
+      throw new Error('Unauthorized to delete this restaurant');
+    }
+    
+    await restaurantsCollection.deleteOne({ id });
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting restaurant:', error);
+    throw error;
+  }
 };
 
 module.exports = {
@@ -227,8 +235,9 @@ module.exports = {
   searchRestaurantsByLocation,
   getAllCuisineTypes,
   getAllCities,
-  storeRestaurantVector,
-  searchRestaurantsBySimilarity,
+  semanticSearch,
   getRestaurantById,
-  createRestaurant
+  createRestaurant,
+  updateRestaurant,
+  deleteRestaurant
 }; 
