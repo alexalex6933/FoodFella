@@ -31,6 +31,9 @@ export interface AuthResponse {
 // Register a new user
 export const register = async (userData: RegisterData): Promise<AuthResponse> => {
   try {
+    console.log('Registering user with data:', userData);
+    console.log('Sending request to:', `${API_URL}/api/users/register`);
+    
     const response = await fetch(`${API_URL}/api/users/register`, {
       method: 'POST',
       headers: {
@@ -40,6 +43,7 @@ export const register = async (userData: RegisterData): Promise<AuthResponse> =>
     });
     
     const data = await response.json();
+    console.log('Registration response:', data);
     return data;
   } catch (error) {
     console.error('Registration error:', error);
@@ -50,6 +54,9 @@ export const register = async (userData: RegisterData): Promise<AuthResponse> =>
 // Login a user
 export const login = async (credentials: LoginData): Promise<AuthResponse> => {
   try {
+    console.log('Logging in with credentials:', { email: credentials.email, passwordLength: credentials.password.length });
+    console.log('Sending request to:', `${API_URL}/api/users/login`);
+    
     const response = await fetch(`${API_URL}/api/users/login`, {
       method: 'POST',
       headers: {
@@ -59,6 +66,7 @@ export const login = async (credentials: LoginData): Promise<AuthResponse> => {
     });
     
     const data = await response.json();
+    console.log('Login response:', data);
     return data;
   } catch (error) {
     console.error('Login error:', error);

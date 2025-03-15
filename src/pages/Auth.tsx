@@ -13,6 +13,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
+import API_URL from '../config/api';
 
 interface AuthProps {
   isRegister?: boolean;
@@ -25,6 +26,7 @@ const Auth: React.FC<AuthProps> = ({ isRegister = false }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [formError, setFormError] = useState('');
   const [mode, setMode] = useState<'login' | 'register'>(isRegister ? 'register' : 'login');
+  const [testResult, setTestResult] = useState<string | null>(null);
   
   const { login, register, error, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -92,6 +94,20 @@ const Auth: React.FC<AuthProps> = ({ isRegister = false }) => {
     setFormError('');
   };
 
+  // Test backend connectivity
+  const testBackendConnection = async () => {
+    try {
+      setTestResult('Testing connection...');
+      const response = await fetch(`${API_URL}/health`);
+      const data = await response.json();
+      setTestResult(`Connection successful: ${JSON.stringify(data)}`);
+      console.log('Backend connection test:', data);
+    } catch (err) {
+      setTestResult(`Connection failed: ${err instanceof Error ? err.message : String(err)}`);
+      console.error('Backend connection test failed:', err);
+    }
+  };
+
   return (
     <Container maxWidth="sm">
       <Box sx={{ my: 8 }}>
@@ -103,6 +119,12 @@ const Auth: React.FC<AuthProps> = ({ isRegister = false }) => {
           {(error || formError) && (
             <Alert severity="error" sx={{ mb: 3 }}>
               {formError || error}
+            </Alert>
+          )}
+          
+          {testResult && (
+            <Alert severity={testResult.includes('successful') ? 'success' : 'error'} sx={{ mb: 3 }}>
+              {testResult}
             </Alert>
           )}
           
@@ -180,6 +202,18 @@ const Auth: React.FC<AuthProps> = ({ isRegister = false }) => {
                   ) : (
                     mode === 'login' ? 'Sign In' : 'Create Account'
                   )}
+                </Button>
+              </Grid>
+              
+              <Grid item xs={12}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  color="secondary"
+                  onClick={testBackendConnection}
+                  sx={{ py: 1.5 }}
+                >
+                  Test Backend Connection
                 </Button>
               </Grid>
               
