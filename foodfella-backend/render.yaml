@@ -1,9 +1,29 @@
-     services:
-       - type: web
-         name: foodfella-backend
-         env: node
-         buildCommand: npm install
-         startCommand: npm start
-         envVars:
-           - key: NODE_ENV
-             value: production
+services:
+  - type: web
+    name: foodfella-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 90d
+      - key: BCRYPT_SALT_ROUNDS
+        value: 10
+      - key: CASSANDRA_KEYSPACE
+        value: foodfella
+      - key: CASSANDRA_USERNAME
+        value: AstraCS:YQeZSRlCIFjaOjwDzDSBpcMn:94b29b0b13d4f21fb6db4a7513b813dd8d4fc35e9119ddd838b8bc300d3d654f
+      - key: CASSANDRA_PASSWORD
+        sync: 
+      - key: OPENAI_API_KEY
+        sync: false
+    disk:
+      name: astra-secure-connect
+      mountPath: /opt/render/project/src/secure-connect
+      sizeGB: 1

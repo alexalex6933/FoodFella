@@ -1,67 +1,47 @@
 const cassandra = require('cassandra-driver');
 const dotenv = require('dotenv');
+const path = require('path');
+const fs = require('fs');
 
 dotenv.config();
 
-// Cassandra client configuration
+// Determine the secure connect bundle path based on environment
+let secureConnectPath = process.env.ASTRA_SECURE_CONNECT_PATH;
+
+// For Render deployment, check if the bundle is in the mounted disk
+if (process.env.NODE_ENV === 'production') {
+  const renderPath = '/opt/render/project/src/secure-connect/secure-connect-foodfella.zip';
+  if (fs.existsSync(renderPath)) {
+    secureConnectPath = renderPath;
+    console.log('Using Render mounted secure connect bundle');
+  }
+}
+
+// Cassandra client configuration for Astra DB
 const client = new cassandra.Client({
-  contactPoints: process.env.CASSANDRA_CONTACT_POINTS.split(','),
-  localDataCenter: process.env.CASSANDRA_DATACENTER,
-  keyspace: process.env.CASSANDRA_KEYSPACE,
+  cloud: {
+    secureConnectBundle: secureConnectPath,
+  },
   credentials: {
     username: process.env.CASSANDRA_USERNAME,
     password: process.env.CASSANDRA_PASSWORD,
   },
-  queryOptions: {
-    consistency: cassandra.types.consistencies.localQuorum,
-  },
+  keyspace: process.env.CASSANDRA_KEYSPACE,
 });
 
 // Connect to the database
 const connectDB = async () => {
   try {
     await client.connect();
-    console.log('Connected to DataStax Cassandra database');
-    
-    // Create keyspace if it doesn't exist
-    await createKeyspaceIfNotExists();
+    console.log('Connected to DataStax Astra DB');
     
     // Create tables if they don't exist
     await createTablesIfNotExist();
     
     return client;
   } catch (error) {
-    console.error('Error connecting to Cassandra:', error);
+    console.error('Error connecting to Astra DB:', error);
     process.exit(1);
-  }
-};
-
-// Create keyspace if it doesn't exist
-const createKeyspaceIfNotExists = async () => {
-  try {
-    const query = `
-      CREATE KEYSPACE IF NOT EXISTS ${process.env.CASSANDRA_KEYSPACE}
-      WITH REPLICATION = { 'class' : 'SimpleStrategy', 'replication_factor' : 1 };
-    `;
-    
-    // Use a temporary client without keyspace to create the keyspace
-    const tempClient = new cassandra.Client({
-      contactPoints: process.env.CASSANDRA_CONTACT_POINTS.split(','),
-      localDataCenter: process.env.CASSANDRA_DATACENTER,
-      credentials: {
-        username: process.env.CASSANDRA_USERNAME,
-        password: process.env.CASSANDRA_PASSWORD,
-      },
-    });
-    
-    await tempClient.connect();
-    await tempClient.execute(query);
-    await tempClient.shutdown();
-    
-    console.log(`Keyspace ${process.env.CASSANDRA_KEYSPACE} created or already exists`);
-  } catch (error) {
-    console.error('Error creating keyspace:', error);
-    throw error;
   }
 };
 
@@ -178,6 +158,25 @@ const createTablesIfNotExist = async () => {
         created_at timestamp,
         PRIMARY KEY (city, restaurant_id)
       );
+    `);
+    
+    // Restaurant descriptions vector table for semantic search
+    await client.execute(`
+      CREATE TABLE IF NOT EXISTS restaurant_vectors (
+        id uuid PRIMARY KEY,
+        restaurant_id uuid,
+        description_vector VECTOR<float, 1536>,
+        created_at timestamp
+      );
+    `);
+    
+    // Create index on description_vector for ANN search
+    await client.execute(`
+      CREATE CUSTOM INDEX IF NOT EXISTS ON restaurant_vectors (description_vector) 
+      USING 'StorageAttachedIndex' 
+      WITH OPTIONS = {
+        'similarity_function': 'cosine'
+      };
     `);
     
     console.log('All tables created or already exist');
