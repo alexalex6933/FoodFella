@@ -19,7 +19,7 @@ services:
         value: foodfella
       - key: CASSANDRA_USERNAME
         sync: false
-      - key: CASSANDRA_PASSWORD
-        sync: 
-      - key: OPENAI_API_KEY
+      - key: ASTRA_DB_ID
+        sync: false
+      - key: ASTRA_DB_REGION
         sync: false

@@ -1,7 +1,7 @@
 const Restaurant = require('../models/restaurantModel');
 const searchService = require('../services/searchService');
 const { v4: uuidv4 } = require('uuid');
-const { client } = require('../database/database');
+const { getCollection } = require('../config/database');
 
 /**
  * Get all restaurants with pagination
@@ -10,54 +10,53 @@ const { client } = require('../database/database');
  */
 exports.getAllRestaurants = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    
-    const result = await Restaurant.findAll(page, limit);
+    const restaurants = await searchService.getAllRestaurants();
     
     res.status(200).json({
       status: 'success',
       data: {
-        restaurants: result.restaurants,
-        pagination: result.pagination,
-      },
+        restaurants
+      }
     });
   } catch (error) {
     console.error('Error getting restaurants:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Error getting restaurants',
+      message: 'Error getting restaurants'
     });
   }
 };
 
 /**
- * Get restaurant by ID
+ * Get a restaurant by ID
  * @route GET /api/restaurants/:id
  * @access Public
  */
 exports.getRestaurantById = async (req, res) => {
   try {
-    const restaurant = await Restaurant.findById(req.params.id);
+    const restaurantId = req.params.id;
     
-    if (!restaurant) {
+    const restaurantsCollection = await getCollection('restaurants');
+    const restaurant = await restaurantsCollection.get(restaurantId);
+    
+    if (!restaurant || !restaurant.data) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Restaurant not found',
+        status: 'fail',
+        message: 'Restaurant not found'
       });
     }
     
     res.status(200).json({
       status: 'success',
       data: {
-        restaurant,
-      },
+        restaurant: restaurant.data
+      }
     });
   } catch (error) {
     console.error('Error getting restaurant:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Error getting restaurant',
+      message: 'Error getting restaurant'
     });
   }
 };
@@ -69,110 +68,83 @@ exports.getRestaurantById = async (req, res) => {
  */
 exports.createRestaurant = async (req, res) => {
   try {
-    const {
-      name,
-      description,
-      cuisineType,
-      priceRange,
-      locations,
-      images,
-    } = req.body;
+    const { name, description, cuisineType, priceRange, locations, images } = req.body;
     
-    // Set merchant ID from authenticated user
-    const merchantId = req.user.id;
+    if (!name || !description || !cuisineType) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'Please provide name, description, and cuisine type'
+      });
+    }
     
     const restaurantId = uuidv4();
     const now = new Date();
     
     // Create restaurant
-    const query = `
-      INSERT INTO restaurants (
-        id, name, description, cuisine_type, price_range, merchant_id, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+    const restaurantsCollection = await getCollection('restaurants');
     
-    await client.execute(
-      query,
-      [
-        restaurantId,
-        name,
-        description,
-        cuisineType,
-        priceRange || 'moderate',
-        merchantId,
-        now,
-        now
-      ],
-      { prepare: true }
-    );
+    const restaurant = {
+      id: restaurantId,
+      name,
+      description,
+      cuisine_type: cuisineType,
+      price_range: priceRange || 'moderate',
+      merchant_id: req.user.id,
+      created_at: now,
+      updated_at: now
+    };
+    
+    await restaurantsCollection.create(restaurantId, restaurant);
     
     // Create restaurant location
     if (locations && locations.length > 0) {
+      const locationCollection = await getCollection('restaurant_locations');
+      const locationsByCity = await getCollection('restaurants_by_location');
+      
       for (const location of locations) {
         const locationId = uuidv4();
-        const locationQuery = `
-          INSERT INTO restaurant_locations (
-            restaurant_id, location_id, address, city, state, zip_code, latitude, longitude, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
         
-        await client.execute(
-          locationQuery,
-          [
-            restaurantId,
-            locationId,
-            location.street,
-            location.city,
-            location.state,
-            location.zip_code,
-            location.latitude || null,
-            location.longitude || null,
-            now,
-            now
-          ],
-          { prepare: true }
-        );
+        const locationData = {
+          restaurant_id: restaurantId,
+          location_id: locationId,
+          address: location.street,
+          city: location.city,
+          state: location.state,
+          zip_code: location.zipCode,
+          latitude: location.latitude || null,
+          longitude: location.longitude || null,
+          created_at: now,
+          updated_at: now
+        };
+        
+        await locationCollection.create(`${restaurantId}_${locationId}`, locationData);
         
         // Add to restaurants_by_location for search
-        const locationSearchQuery = `
-          INSERT INTO restaurants_by_location (
-            city, restaurant_id, name, cuisine_type, price_range, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?)
-        `;
+        const locationSearchData = {
+          city: location.city,
+          restaurant_id: restaurantId,
+          name,
+          cuisine_type: cuisineType,
+          price_range: priceRange || 'moderate',
+          created_at: now
+        };
         
-        await client.execute(
-          locationSearchQuery,
-          [
-            location.city,
-            restaurantId,
-            name,
-            cuisineType,
-            priceRange || 'moderate',
-            now
-          ],
-          { prepare: true }
-        );
+        await locationsByCity.create(`${location.city}_${restaurantId}`, locationSearchData);
       }
     }
     
     // Add to restaurants_by_cuisine for search
-    const cuisineSearchQuery = `
-      INSERT INTO restaurants_by_cuisine (
-        cuisine_type, restaurant_id, name, price_range, created_at
-      ) VALUES (?, ?, ?, ?, ?)
-    `;
+    const cuisineCollection = await getCollection('restaurants_by_cuisine');
     
-    await client.execute(
-      cuisineSearchQuery,
-      [
-        cuisineType,
-        restaurantId,
-        name,
-        priceRange || 'moderate',
-        now
-      ],
-      { prepare: true }
-    );
+    const cuisineData = {
+      cuisine_type: cuisineType,
+      restaurant_id: restaurantId,
+      name,
+      price_range: priceRange || 'moderate',
+      created_at: now
+    };
+    
+    await cuisineCollection.create(`${cuisineType}_${restaurantId}`, cuisineData);
     
     // Store vector embedding for restaurant description
     if (description) {
@@ -184,14 +156,10 @@ exports.createRestaurant = async (req, res) => {
       }
     }
     
-    // Get the created restaurant
-    const getQuery = 'SELECT * FROM restaurants WHERE id = ?';
-    const result = await client.execute(getQuery, [restaurantId], { prepare: true });
-    
     res.status(201).json({
       status: 'success',
       data: {
-        restaurant: result.rows[0]
+        restaurant
       }
     });
   } catch (error) {
@@ -205,26 +173,25 @@ exports.createRestaurant = async (req, res) => {
 
 /**
  * Update a restaurant
- * @route PUT /api/restaurants/:id
+ * @route PATCH /api/restaurants/:id
  * @access Private (Merchant only)
  */
 exports.updateRestaurant = async (req, res) => {
   try {
     const restaurantId = req.params.id;
-    const now = new Date();
     
     // Get current restaurant data
-    const getQuery = 'SELECT * FROM restaurants WHERE id = ?';
-    const currentResult = await client.execute(getQuery, [restaurantId], { prepare: true });
+    const restaurantsCollection = await getCollection('restaurants');
+    const currentRestaurantResponse = await restaurantsCollection.get(restaurantId);
     
-    if (currentResult.rows.length === 0) {
+    if (!currentRestaurantResponse || !currentRestaurantResponse.data) {
       return res.status(404).json({
         status: 'fail',
         message: 'Restaurant not found'
       });
     }
     
-    const currentRestaurant = currentResult.rows[0];
+    const currentRestaurant = currentRestaurantResponse.data;
     
     // Check if user is the owner
     if (currentRestaurant.merchant_id.toString() !== req.user.id.toString()) {
@@ -234,39 +201,27 @@ exports.updateRestaurant = async (req, res) => {
       });
     }
     
-    // Build update query dynamically based on provided fields
-    const updateFields = [];
-    const updateValues = [];
+    // Build update data
+    const updateData = { updated_at: new Date() };
     
     if (req.body.name) {
-      updateFields.push('name = ?');
-      updateValues.push(req.body.name);
+      updateData.name = req.body.name;
     }
     
     if (req.body.description) {
-      updateFields.push('description = ?');
-      updateValues.push(req.body.description);
+      updateData.description = req.body.description;
     }
     
-    if (req.body.cuisine_type) {
-      updateFields.push('cuisine_type = ?');
-      updateValues.push(req.body.cuisine_type);
+    if (req.body.cuisineType) {
+      updateData.cuisine_type = req.body.cuisineType;
     }
     
-    if (req.body.price_range) {
-      updateFields.push('price_range = ?');
-      updateValues.push(req.body.price_range);
+    if (req.body.priceRange) {
+      updateData.price_range = req.body.priceRange;
     }
-    
-    updateFields.push('updated_at = ?');
-    updateValues.push(now);
-    
-    // Add restaurant ID at the end for WHERE clause
-    updateValues.push(restaurantId);
     
     // Update restaurant
-    const updateQuery = `UPDATE restaurants SET ${updateFields.join(', ')} WHERE id = ?`;
-    await client.execute(updateQuery, updateValues, { prepare: true });
+    await restaurantsCollection.update(restaurantId, updateData);
     
     // Update vector embedding if description changed
     if (req.body.description && req.body.description !== currentRestaurant.description) {
@@ -279,12 +234,12 @@ exports.updateRestaurant = async (req, res) => {
     }
     
     // Get the updated restaurant
-    const result = await client.execute(getQuery, [restaurantId], { prepare: true });
+    const updatedRestaurantResponse = await restaurantsCollection.get(restaurantId);
     
     res.status(200).json({
       status: 'success',
       data: {
-        restaurant: result.rows[0]
+        restaurant: updatedRestaurantResponse.data
       }
     });
   } catch (error) {
@@ -303,34 +258,41 @@ exports.updateRestaurant = async (req, res) => {
  */
 exports.deleteRestaurant = async (req, res) => {
   try {
-    const restaurant = await Restaurant.findById(req.params.id);
+    const restaurantId = req.params.id;
     
-    if (!restaurant) {
+    // Get restaurant data
+    const restaurantsCollection = await getCollection('restaurants');
+    const restaurantResponse = await restaurantsCollection.get(restaurantId);
+    
+    if (!restaurantResponse || !restaurantResponse.data) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Restaurant not found',
+        status: 'fail',
+        message: 'Restaurant not found'
       });
     }
     
-    // Check if the restaurant belongs to the authenticated merchant
-    if (restaurant.merchantId.toString() !== req.user.id.toString()) {
+    const restaurant = restaurantResponse.data;
+    
+    // Check if user is the owner
+    if (restaurant.merchant_id.toString() !== req.user.id.toString()) {
       return res.status(403).json({
-        status: 'error',
-        message: 'You are not authorized to delete this restaurant',
+        status: 'fail',
+        message: 'You are not authorized to delete this restaurant'
       });
     }
     
-    await Restaurant.delete(req.params.id);
+    // Delete restaurant
+    await restaurantsCollection.delete(restaurantId);
     
     res.status(204).json({
       status: 'success',
-      data: null,
+      data: null
     });
   } catch (error) {
     console.error('Error deleting restaurant:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Error deleting restaurant',
+      message: 'Error deleting restaurant'
     });
   }
 };
