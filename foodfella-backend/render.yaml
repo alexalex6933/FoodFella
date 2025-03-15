@@ -18,7 +18,7 @@ services:
       - key: CASSANDRA_KEYSPACE
         value: foodfella
       - key: CASSANDRA_USERNAME
-        value: AstraCS:YQeZSRlCIFjaOjwDzDSBpcMn:94b29b0b13d4f21fb6db4a7513b813dd8d4fc35e9119ddd838b8bc300d3d654f
+        sync: false
       - key: CASSANDRA_PASSWORD
         sync: 
       - key: OPENAI_API_KEY
