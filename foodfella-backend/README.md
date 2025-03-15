@@ -94,6 +94,34 @@ Backend API for the FoodFella food delivery application using DataStax Cassandra
 - `GET /api/search/cuisines` - Get all cuisine types
 - `GET /api/search/cities` - Get all cities
 
+## Vector Search Capabilities
+
+FoodFella backend now includes vector search capabilities powered by DataStax Astra DB's vector database. This enables semantic search for restaurants based on natural language queries.
+
+### Features
+
+- **Semantic Search**: Search for restaurants using natural language queries
+- **Vector Embeddings**: Restaurant descriptions are converted to vector embeddings using OpenAI's text-embedding-ada-002 model
+- **Similarity Search**: Find restaurants with descriptions similar to the search query
+
+### Setup
+
+To use the vector search capabilities, you need:
+
+1. An OpenAI API key for generating embeddings
+2. A DataStax Astra DB vector database
+
+Add these to your `.env` file:
+
+```
+OPENAI_API_KEY=your_openai_api_key
+```
+
+### API Endpoints
+
+- `GET /api/search/semantic?query=your search query` - Search restaurants using natural language
+- `GET /api/search/restaurants?query=your search query` - Combined search with vector capabilities
+
 ## Database Schema
 
 The application uses the following Cassandra tables:
