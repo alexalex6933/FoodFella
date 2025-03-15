@@ -1,18 +1,23 @@
-import React from 'react';
-import { mockOrders, mockRestaurants, mockMenuItems } from '../data/mockData';
+import React, { useState, useEffect} from 'react';
+import { mockOrders, mockRestaurants, mockMenuItems, updateOrderStatus, MenuItem } from '../data/mockData';
 import { useAuth } from '../contexts/AuthContext';
 import { Package, Clock, CheckCircle, Store } from 'lucide-react';
 
 const Orders = () => {
   const { user } = useAuth();
-  
-  const currentOrders = mockOrders.filter(
-    order => order.userId === user?.id && order.status !== 'ready'
-  );
-  
-  const previousOrders = mockOrders.filter(
-    order => order.userId === user?.id && order.status === 'ready'
-  );
+  const [items, setItems] = useState<MenuItem[]>([]);
+  useEffect(() => {
+      setItems(mockMenuItems.filter(item => item.restaurantId === '1'));
+    }, []);
+
+  // Filter orders for the current merchant
+    const currentOrders = mockOrders.filter(
+      order => order.restaurantId === '1' && order.status !== 'ready'
+    );
+    
+    const orderHistory = mockOrders.filter(
+      order => order.restaurantId === '1' && order.status === 'ready'
+    );
 
   const getRestaurantName = (restaurantId: string) => {
     const restaurant = mockRestaurants.find(r => r.id === restaurantId);
@@ -74,6 +79,13 @@ const Orders = () => {
     });
   };
 
+  const handleUpdateOrderStatus = (orderId: string, newStatus: 'processing' | 'cooking' | 'ready') => {
+      console.log("status " + newStatus)
+      updateOrderStatus(orderId, newStatus);
+      // Force a re-render by updating the state
+      setItems([...items]);
+    };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-[#f7f9f7] flex items-center justify-center">
@@ -89,101 +101,94 @@ const Orders = () => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Current Orders */}
-      <section className="mb-12">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Current Orders</h2>
-        {currentOrders.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-6 text-center">
-            <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">No current orders</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {currentOrders.map((order) => (
-              <div key={order.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-2">
-                    {getStatusIcon(order.status)}
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-                      {getStatusText(order.status)}
-                    </span>
-                  </div>
-                  <span className="text-sm font-medium text-gray-600">
-                    Order #{order.id}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2 mb-4 text-gray-600">
-                  <Store className="h-4 w-4" />
-                  <span>{getRestaurantName(order.restaurantId)}</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-4">
-                  Ordered at: {formatDateTime(order.createdAt)}
-                </div>
-                <div className="space-y-2">
-                  {order.items.map((item) => (
-                    <div key={item.itemId} className="flex justify-between text-sm">
-                      <span>{getItemName(item.itemId)} × {item.quantity}</span>
-                      <span>${item.priceAtPurchase.toFixed(2)}</span>
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-lg font-semibold mb-6">Current Orders</h2>
+              <div className="space-y-4">
+                {currentOrders.map((order) => (
+                  <div key={order.id} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center space-x-2">
+                        {getStatusIcon(order.status)}
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
+                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        </span>
+                      </div>
+                      <span className="text-sm font-medium text-gray-600">
+                        Order #{order.id}
+                      </span>
                     </div>
-                  ))}
-                  <div className="border-t pt-2 mt-2">
-                    <div className="flex justify-between font-semibold">
-                      <span>Total</span>
-                      <span>${order.totalAmount.toFixed(2)}</span>
+                    <div className="space-y-2 mb-4">
+                      {order.items.map((item) => (
+                        <div key={item.itemId} className="flex justify-between text-sm">
+                          <span>{mockMenuItems.find(i => i.id === item.itemId)?.name} × {item.quantity}</span>
+                          <span>${item.priceAtPurchase.toFixed(2)}</span>
+                        </div>
+                      ))}
+                      <div className="border-t pt-2 mt-2">
+                        <div className="flex justify-between font-semibold">
+                          <span>Total</span>
+                          <span>${order.totalAmount.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      {order.status === 'processing' && (
+                        <button
+                          onClick={() => handleUpdateOrderStatus(order.id, 'cooking')}
+                          className="px-4 py-2 bg-orange-100 text-orange-800 rounded-full hover:bg-orange-200 transition-colors"
+                        >
+                          Start Cooking
+                        </button>
+                      )}
+                      {order.status === 'cooking' && (
+                        <button
+                          onClick={() => handleUpdateOrderStatus(order.id, 'ready')}
+                          className="px-4 py-2 bg-green-100 text-green-800 rounded-full hover:bg-green-200 transition-colors"
+                        >
+                          Mark as Ready
+                        </button>
+                      )}
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Previous Orders */}
-      <section>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Order History</h2>
-        {previousOrders.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-6 text-center">
-            <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">No previous orders</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {previousOrders.map((order) => (
-              <div key={order.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-                    Completed
-                  </span>
-                  <span className="text-sm font-medium text-gray-600">
-                    Order #{order.id}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2 mb-4 text-gray-600">
-                  <Store className="h-4 w-4" />
-                  <span>{getRestaurantName(order.restaurantId)}</span>
-                </div>
-                <div className="text-sm text-gray-600 mb-4">
-                  Ordered at: {formatDateTime(order.createdAt)}
-                </div>
-                <div className="space-y-2">
-                  {order.items.map((item) => (
-                    <div key={item.itemId} className="flex justify-between text-sm">
-                      <span>{getItemName(item.itemId)} × {item.quantity}</span>
-                      <span>${item.priceAtPurchase.toFixed(2)}</span>
+            </div>
+      
+            {/* Order History */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-lg font-semibold mb-6">Order History</h2>
+              <div className="space-y-4">
+                {orderHistory.map((order) => (
+                  <div key={order.id} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                          Completed
+                        </span>
+                      </div>
+                      <span className="text-sm font-medium text-gray-600">
+                        Order #{order.id}
+                      </span>
                     </div>
-                  ))}
-                  <div className="border-t pt-2 mt-2">
-                    <div className="flex justify-between font-semibold">
-                      <span>Total</span>
-                      <span>${order.totalAmount.toFixed(2)}</span>
+                    <div className="space-y-2">
+                      {order.items.map((item) => (
+                        <div key={item.itemId} className="flex justify-between text-sm">
+                          <span>{mockMenuItems.find(i => i.id === item.itemId)?.name} × {item.quantity}</span>
+                          <span>${item.priceAtPurchase.toFixed(2)}</span>
+                        </div>
+                      ))}
+                      <div className="border-t pt-2 mt-2">
+                        <div className="flex justify-between font-semibold">
+                          <span>Total</span>
+                          <span>${order.totalAmount.toFixed(2)}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+            </div>
     </div>
   );
 };

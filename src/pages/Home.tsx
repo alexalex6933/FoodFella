@@ -248,6 +248,7 @@ const Home = () => {
         </Stack>
       </Box>
 
+
       {/* Error Message */}
       {error && (
         <Paper sx={{ p: 2, mb: 4, bgcolor: 'error.light', color: 'error.contrastText' }}>
@@ -260,6 +261,7 @@ const Home = () => {
         {loading ? 'Loading Restaurants...' : 
           restaurants.length > 0 ? 'Restaurants' : 'No Restaurants Found'}
       </Typography>
+
       
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
