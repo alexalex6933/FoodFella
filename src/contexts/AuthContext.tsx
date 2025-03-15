@@ -78,7 +78,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await register({ name, email, password });
+      
+      // Split name into firstName and lastName
+      const nameParts = name.split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+      
+      const response = await register({ 
+        firstName, 
+        lastName, 
+        email, 
+        password, 
+        role: 'customer' // Default role
+      });
       
       if (response.status === 'success' && response.data?.token && response.data?.user) {
         localStorage.setItem('token', response.data.token);
