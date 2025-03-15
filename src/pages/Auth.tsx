@@ -1,92 +1,206 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { 
+  Container, 
+  Box, 
+  Typography, 
+  TextField, 
+  Button, 
+  Paper, 
+  Grid,
+  Link,
+  Alert,
+  CircularProgress
+} from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 
-const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
+interface AuthProps {
+  isRegister?: boolean;
+}
+
+const Auth: React.FC<AuthProps> = ({ isRegister = false }) => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const { login } = useAuth();
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [formError, setFormError] = useState('');
+  const [mode, setMode] = useState<'login' | 'register'>(isRegister ? 'register' : 'login');
+  
+  const { login, register, error, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get the redirect path from location state or default to home
+  const from = (location.state as any)?.from?.pathname || '/';
+
+  const validateForm = () => {
+    setFormError('');
+    
+    if (mode === 'register') {
+      if (!name.trim()) {
+        setFormError('Name is required');
+        return false;
+      }
+      
+      if (password !== confirmPassword) {
+        setFormError('Passwords do not match');
+        return false;
+      }
+      
+      if (password.length < 6) {
+        setFormError('Password must be at least 6 characters');
+        return false;
+      }
+    }
+    
+    if (!email.trim()) {
+      setFormError('Email is required');
+      return false;
+    }
+    
+    if (!password) {
+      setFormError('Password is required');
+      return false;
+    }
+    
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     try {
-      await login(email, password);
-      // Navigation is now handled in the AuthContext
+      if (mode === 'login') {
+        await login(email, password);
+      } else {
+        await register(name, email, password);
+      }
+      
+      // If no error was thrown, redirect
+      navigate(from, { replace: true });
     } catch (err) {
-      setError('Invalid email or password');
+      // Error is handled by the auth context
     }
   };
 
   const toggleMode = () => {
-    setIsLogin(!isLogin);
-    setError('');
+    setMode(mode === 'login' ? 'register' : 'login');
+    setFormError('');
   };
 
   return (
-    <div className="max-w-md mx-auto mt-12 p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-center text-[#1db954] mb-6">
-        {isLogin ? 'Welcome back to' : 'Join'} FoodFella
-      </h2>
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email
-          </label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-            Password
-          </label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="w-full bg-[#1db954] text-white py-2 px-4 rounded-md hover:bg-[#169c46] transition-colors"
-        >
-          {isLogin ? 'Sign In' : 'Create Account'}
-        </button>
-      </form>
-
-      <div className="mt-4 text-center">
-        <button
-          onClick={toggleMode}
-          className="text-[#1db954] hover:text-[#169c46] text-sm"
-        >
-          {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-        </button>
-      </div>
-
-      {isLogin && (
-        <p className="mt-4 text-sm text-gray-600 text-center">
-          Demo accounts:<br />
-          Customer: customer@example.com<br />
-          Merchant: merchant@example.com<br />
-          Password: password123
-        </p>
-      )}
-    </div>
+    <Container maxWidth="sm">
+      <Box sx={{ my: 8 }}>
+        <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+          <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ fontWeight: 'bold' }}>
+            {mode === 'login' ? 'Sign In' : 'Create Account'}
+          </Typography>
+          
+          {(error || formError) && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {formError || error}
+            </Alert>
+          )}
+          
+          <Box component="form" onSubmit={handleSubmit} noValidate>
+            <Grid container spacing={3}>
+              {mode === 'register' && (
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    id="name"
+                    label="Full Name"
+                    name="name"
+                    autoComplete="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </Grid>
+              )}
+              
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  id="email"
+                  label="Email Address"
+                  name="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  name="password"
+                  label="Password"
+                  type="password"
+                  id="password"
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </Grid>
+              
+              {mode === 'register' && (
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    name="confirmPassword"
+                    label="Confirm Password"
+                    type="password"
+                    id="confirmPassword"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </Grid>
+              )}
+              
+              <Grid item xs={12}>
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  color="primary"
+                  size="large"
+                  disabled={isLoading}
+                  sx={{ py: 1.5 }}
+                >
+                  {isLoading ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    mode === 'login' ? 'Sign In' : 'Create Account'
+                  )}
+                </Button>
+              </Grid>
+              
+              <Grid item xs={12} textAlign="center">
+                <Typography variant="body2">
+                  {mode === 'login' ? "Don't have an account? " : "Already have an account? "}
+                  <Link 
+                    component="button" 
+                    variant="body2" 
+                    onClick={toggleMode}
+                    sx={{ fontWeight: 'bold' }}
+                  >
+                    {mode === 'login' ? 'Sign Up' : 'Sign In'}
+                  </Link>
+                </Typography>
+              </Grid>
+            </Grid>
+          </Box>
+        </Paper>
+      </Box>
+    </Container>
   );
 };
 

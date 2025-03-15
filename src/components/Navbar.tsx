@@ -1,140 +1,270 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Leaf, Menu, User, LogOut, ShoppingCart, Settings, X } from 'lucide-react';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import {
+  AppBar,
+  Box,
+  Toolbar,
+  IconButton,
+  Typography,
+  Menu,
+  Container,
+  Avatar,
+  Button,
+  Tooltip,
+  MenuItem,
+  Link,
+  useMediaQuery,
+  useTheme,
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemButton,
+  Divider
+} from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import RestaurantIcon from '@mui/icons-material/Restaurant';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { useAuth } from '../contexts/AuthContext';
-import { useCart } from '../contexts/CartContext';
 
 const Navbar = () => {
-  const { user, logout } = useAuth();
-  const { getItemCount } = useCart();
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const handleCartClick = () => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    navigate('/cart');
+  const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorElUser(event.currentTarget);
   };
 
-  const handleLogoClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (user?.type === 'merchant') {
-      navigate('/merchant/dashboard');
-    } else {
-      navigate('/');
-    }
+  const handleCloseUserMenu = () => {
+    setAnchorElUser(null);
   };
 
-  const handleMenuClick = () => {
-    setIsMenuOpen(true);
+  const handleLogout = () => {
+    logout();
+    handleCloseUserMenu();
+    navigate('/');
   };
 
-  const handleCloseMenu = () => {
-    setIsMenuOpen(false);
+  const handleDrawerToggle = () => {
+    setDrawerOpen(!drawerOpen);
   };
 
-  const handleNavigate = (path: string) => {
-    navigate(path);
-    setIsMenuOpen(false);
-  };
+  const navItems = [
+    { name: 'Home', path: '/' },
+    { name: 'Restaurants', path: '/restaurants' }
+  ];
+
+  const drawer = (
+    <Box onClick={handleDrawerToggle} sx={{ textAlign: 'center' }}>
+      <Typography variant="h6" sx={{ my: 2, fontWeight: 'bold', color: 'primary.main' }}>
+        FoodFella
+      </Typography>
+      <Divider />
+      <List>
+        {navItems.map((item) => (
+          <ListItem key={item.name} disablePadding>
+            <ListItemButton
+              component={RouterLink}
+              to={item.path}
+              sx={{ textAlign: 'center' }}
+            >
+              <ListItemText primary={item.name} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+        {!isAuthenticated ? (
+          <>
+            <ListItem disablePadding>
+              <ListItemButton
+                component={RouterLink}
+                to="/login"
+                sx={{ textAlign: 'center' }}
+              >
+                <ListItemText primary="Login" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton
+                component={RouterLink}
+                to="/register"
+                sx={{ textAlign: 'center' }}
+              >
+                <ListItemText primary="Register" />
+              </ListItemButton>
+            </ListItem>
+          </>
+        ) : (
+          <>
+            <ListItem disablePadding>
+              <ListItemButton
+                component={RouterLink}
+                to="/profile"
+                sx={{ textAlign: 'center' }}
+              >
+                <ListItemText primary="Profile" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton
+                onClick={handleLogout}
+                sx={{ textAlign: 'center' }}
+              >
+                <ListItemText primary="Logout" />
+              </ListItemButton>
+            </ListItem>
+          </>
+        )}
+      </List>
+    </Box>
+  );
 
   return (
-    <>
-      <nav className="bg-[#1db954] text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <button onClick={handleLogoClick} className="flex items-center space-x-2">
-              <Leaf className="h-8 w-8" />
-              <span className="font-bold text-xl">FoodFella</span>
-            </button>
-            
-            <div className="flex items-center space-x-4">
-              {user?.type !== 'merchant' && (
-                <button 
-                  onClick={handleCartClick}
-                  className="hover:text-green-200 transition-colors relative"
-                >
-                  <ShoppingCart className="h-6 w-6" />
-                  {user && getItemCount() > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-white text-[#1db954] rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
-                      {getItemCount()}
-                    </span>
-                  )}
-                </button>
-              )}
-              {user ? (
-                <>
-                  <span className="text-sm">{user.email}</span>
-                  <button
-                    onClick={logout}
-                    className="hover:text-green-200 transition-colors"
-                  >
-                    <LogOut className="h-6 w-6" />
-                  </button>
-                </>
-              ) : (
-                <Link to="/auth" className="hover:text-green-200 transition-colors">
-                  <User className="h-6 w-6" />
-                </Link>
-              )}
-              <button 
-                onClick={handleMenuClick}
-                className="hover:text-green-200 transition-colors"
+    <AppBar position="static" color="default" elevation={1} sx={{ backgroundColor: 'white' }}>
+      <Container maxWidth="xl">
+        <Toolbar disableGutters>
+          {/* Logo for desktop */}
+          <RestaurantIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1, color: 'primary.main' }} />
+          <Typography
+            variant="h6"
+            noWrap
+            component={RouterLink}
+            to="/"
+            sx={{
+              mr: 2,
+              display: { xs: 'none', md: 'flex' },
+              fontWeight: 700,
+              color: 'primary.main',
+              textDecoration: 'none',
+            }}
+          >
+            FoodFella
+          </Typography>
+
+          {/* Mobile menu button */}
+          <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
+            <IconButton
+              size="large"
+              aria-label="menu"
+              aria-controls="menu-appbar"
+              aria-haspopup="true"
+              onClick={handleDrawerToggle}
+              color="inherit"
+            >
+              <MenuIcon />
+            </IconButton>
+            <Drawer
+              anchor="left"
+              open={drawerOpen}
+              onClose={handleDrawerToggle}
+              ModalProps={{
+                keepMounted: true, // Better open performance on mobile
+              }}
+              sx={{
+                display: { xs: 'block', md: 'none' },
+                '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 240 },
+              }}
+            >
+              {drawer}
+            </Drawer>
+          </Box>
+
+          {/* Logo for mobile */}
+          <RestaurantIcon sx={{ display: { xs: 'flex', md: 'none' }, mr: 1, color: 'primary.main' }} />
+          <Typography
+            variant="h6"
+            noWrap
+            component={RouterLink}
+            to="/"
+            sx={{
+              mr: 2,
+              display: { xs: 'flex', md: 'none' },
+              flexGrow: 1,
+              fontWeight: 700,
+              color: 'primary.main',
+              textDecoration: 'none',
+            }}
+          >
+            FoodFella
+          </Typography>
+
+          {/* Desktop navigation */}
+          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
+            {navItems.map((item) => (
+              <Button
+                key={item.name}
+                component={RouterLink}
+                to={item.path}
+                sx={{ my: 2, color: 'text.primary', display: 'block', mx: 1 }}
               >
-                <Menu className="h-6 w-6" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+                {item.name}
+              </Button>
+            ))}
+          </Box>
 
-      {/* Slide-out Menu */}
-      <div 
-        className={`fixed inset-y-0 right-0 w-96 bg-white shadow-xl transform transition-transform duration-300 ease-in-out z-50 ${
-          isMenuOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        <div className="p-4">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-xl font-bold text-gray-900">Menu</h2>
-            <button 
-              onClick={handleCloseMenu}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <X className="h-6 w-6" />
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <button
-              onClick={() => handleNavigate('/orders')}
-              className="flex items-center space-x-3 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ShoppingCart className="h-5 w-5" />
-              <span>Orders</span>
-            </button>
-
-            <button
-              onClick={() => handleNavigate('/settings')}
-              className="flex items-center space-x-3 w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <Settings className="h-5 w-5" />
-              <span>Settings</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Overlay */}
-      {isMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
-          onClick={handleCloseMenu}
-        />
-      )}
-    </>
+          {/* User menu */}
+          <Box sx={{ flexGrow: 0 }}>
+            {isAuthenticated ? (
+              <>
+                <Tooltip title="Open settings">
+                  <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                    <Avatar alt={user?.name || 'User'} src="/static/images/avatar/2.jpg">
+                      {user?.name?.charAt(0) || 'U'}
+                    </Avatar>
+                  </IconButton>
+                </Tooltip>
+                <Menu
+                  sx={{ mt: '45px' }}
+                  id="menu-appbar"
+                  anchorEl={anchorElUser}
+                  anchorOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  keepMounted
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  open={Boolean(anchorElUser)}
+                  onClose={handleCloseUserMenu}
+                >
+                  <MenuItem component={RouterLink} to="/profile" onClick={handleCloseUserMenu}>
+                    <Typography textAlign="center">Profile</Typography>
+                  </MenuItem>
+                  <MenuItem onClick={handleLogout}>
+                    <Typography textAlign="center">Logout</Typography>
+                  </MenuItem>
+                </Menu>
+              </>
+            ) : (
+              <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+                <Button
+                  component={RouterLink}
+                  to="/login"
+                  sx={{ color: 'text.primary', mx: 1 }}
+                >
+                  Login
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/register"
+                  variant="contained"
+                  color="primary"
+                  sx={{ mx: 1 }}
+                >
+                  Register
+                </Button>
+              </Box>
+            )}
+          </Box>
+        </Toolbar>
+      </Container>
+    </AppBar>
   );
 };
 
