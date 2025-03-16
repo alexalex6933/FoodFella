@@ -133,7 +133,7 @@ const Orders = () => {
     return <p>Loading...</p>;
   }
 
-  if (userType === "customer") {
+  if (userType === "user") {
     return (
       <div>
         {/* Customer Order History */}
