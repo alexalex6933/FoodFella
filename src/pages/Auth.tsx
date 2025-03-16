@@ -29,7 +29,7 @@ const Auth = () => {
         if (!data.user) throw new Error("User not created.");
 
         const { data: existingUser, error: checkError } = await supabase
-          .from("users")
+          .from("User")
           .select("*")
           .eq("id", data.user.id)
           .single();
@@ -40,7 +40,7 @@ const Auth = () => {
         }
 
         if (!existingUser) {
-          const { error: dbError } = await supabase.from("users").insert([
+          const { error: dbError } = await supabase.from("User").insert([
             {
               id: data.user.id,
               email,
