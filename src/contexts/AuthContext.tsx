@@ -76,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Ensure the user exists in the "users" table
     const { data: userProfile, error: profileError } = await supabase
-      .from("users")
+      .from("User")
       .select("*")
       .eq("id", data.user.id)
       .single();
