@@ -41,11 +41,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     // Listen for authentication state changes
     const { data: subscription } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        setUser(session?.user ?? null);
-        if (!session) {
-          localStorage.removeItem("user");
-        } else {
+        if (session?.user) {
+          setUser(session.user);
           localStorage.setItem("user", JSON.stringify(session.user));
+        } else {
+          setUser(null);
+          localStorage.removeItem("user");
         }
       }
     );
@@ -73,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setUser(data.user);
     localStorage.setItem("user", JSON.stringify(data.user));
 
-    // Fetch user profile
+    // Ensure the user exists in the "users" table
     const { data: userProfile, error: profileError } = await supabase
       .from("users")
       .select("*")
@@ -81,8 +82,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       .single();
 
     if (profileError) {
-      console.error("Error fetching user profile:", profileError.message);
-      throw new Error(profileError.message);
+      console.error("User profile not found:", profileError.message);
+      throw new Error("User profile not found.");
     }
 
     // Redirect based on user type

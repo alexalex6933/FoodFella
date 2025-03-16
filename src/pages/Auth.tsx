@@ -6,7 +6,7 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [userType, setUserType] = useState("user"); // Default type is 'user'
+  const [userType, setUserType] = useState("user");
   const [error, setError] = useState("");
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -31,11 +31,16 @@ const Auth = () => {
         if (!data.user) throw new Error("User not created.");
 
         // Check if user already exists in the "users" table
-        const { data: existingUser } = await supabase
+        const { data: existingUser, error: checkError } = await supabase
           .from("users")
           .select("*")
           .eq("id", data.user.id)
           .single();
+
+        if (checkError && checkError.code !== "PGRST116") {
+          console.error("Error checking existing user:", checkError.message);
+          throw new Error(checkError.message);
+        }
 
         if (!existingUser) {
           // Insert user details into the "users" table
@@ -43,11 +48,14 @@ const Auth = () => {
             {
               id: data.user.id,
               email,
-              type: userType, // Store user type
+              type: userType,
             },
           ]);
 
-          if (dbError) throw new Error(dbError.message);
+          if (dbError) {
+            console.error("Database insert error:", dbError.message);
+            throw new Error(dbError.message);
+          }
         }
 
         // Automatically log in after sign-up
@@ -86,7 +94,6 @@ const Auth = () => {
             id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
             required
           />
         </div>
@@ -102,7 +109,6 @@ const Auth = () => {
             id="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
             required
           />
         </div>
@@ -119,7 +125,6 @@ const Auth = () => {
               id="userType"
               value={userType}
               onChange={(e) => setUserType(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
               required
             >
               <option value="user">User</option>
@@ -128,37 +133,10 @@ const Auth = () => {
           </div>
         )}
 
-        <button
-          type="submit"
-          className="w-full bg-[#1db954] text-white py-2 px-4 rounded-md hover:bg-[#169c46] transition-colors"
-          disabled={loading}
-        >
+        <button type="submit" disabled={loading}>
           {loading ? "Processing..." : isLogin ? "Sign In" : "Create Account"}
         </button>
       </form>
-
-      <div className="mt-4 text-center">
-        <button
-          onClick={toggleMode}
-          className="text-[#1db954] hover:text-[#169c46] text-sm"
-        >
-          {isLogin
-            ? "Don't have an account? Sign up"
-            : "Already have an account? Sign in"}
-        </button>
-      </div>
-
-      {isLogin && (
-        <p className="mt-4 text-sm text-gray-600 text-center">
-          Demo accounts:
-          <br />
-          Customer: customer@example.com
-          <br />
-          Merchant: merchant@example.com
-          <br />
-          Password: password123
-        </p>
-      )}
     </div>
   );
 };
