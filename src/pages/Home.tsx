@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Star, Clock } from 'lucide-react';
 import { mockRestaurants } from '../data/mockData';
 import Map from 'react-map-gl';
+import Footer from './Footer';
 
 const Home = () => {
   const [locationGranted, setLocationGranted] = useState<boolean | null>(null);
@@ -179,16 +180,22 @@ const Home = () => {
           ))}
         </div>
 
-        <div className="mt-16 text-center">
-          <h2 className="text-2xl font-bold mb-8">Can't Decide? Let Us Pick For You!</h2>
-          <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="relative">
+        <div className="h-10"></div>
+          {/* Background Image (Underlay) */}
+          <img
+            src="https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg?cs=srgb&dl=pexels-chanwalrus-958545.jpg&fm=jpg"
+            alt="Background"
+            className="absolute inset-0 w-full h-full object-cover bg-black bg-opacity-50"
+          />
+          <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg overflow-hidden relative z-10">
             <div className="p-6">
               {isSpinning ? (
                 <div className="h-48 flex items-center justify-center">
                   <img
                     src={mockRestaurants[spinningIndex].image}
                     alt="Spinning"
-                    className="w-full h-full object-cover animate-pulse"
+                    className="w-full h-full object-cover animate-spin"
                   />
                 </div>
               ) : selectedRestaurant ? (
@@ -206,6 +213,7 @@ const Home = () => {
                   <p className="text-gray-500">Click spin to find a restaurant</p>
                 </div>
               )}
+
               <button
                 onClick={handleSpin}
                 disabled={isSpinning}
@@ -219,6 +227,7 @@ const Home = () => {
           </div>
         </div>
       </div>
+      <Footer/>
     </div>
   );
 };
