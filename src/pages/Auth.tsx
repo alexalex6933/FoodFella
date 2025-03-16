@@ -18,10 +18,8 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        // Handle login
         await login(email, password);
       } else {
-        // Handle registration
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -30,7 +28,6 @@ const Auth = () => {
         if (error) throw new Error(error.message);
         if (!data.user) throw new Error("User not created.");
 
-        // Check if user already exists in the "users" table
         const { data: existingUser, error: checkError } = await supabase
           .from("users")
           .select("*")
@@ -43,7 +40,6 @@ const Auth = () => {
         }
 
         if (!existingUser) {
-          // Insert user details into the "users" table
           const { error: dbError } = await supabase.from("users").insert([
             {
               id: data.user.id,
@@ -58,7 +54,6 @@ const Auth = () => {
           }
         }
 
-        // Automatically log in after sign-up
         await login(email, password);
       }
     } catch (err) {
@@ -74,13 +69,15 @@ const Auth = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-12 p-6 bg-white rounded-lg shadow-md">
+    <div className="max-w-md mx-auto mt-12 p-6 bg-white rounded-lg shadow-lg">
       <h2 className="text-2xl font-bold text-center text-[#1db954] mb-6">
         {isLogin ? "Welcome back to" : "Join"} FoodFella
       </h2>
+
       {error && (
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
       )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label
@@ -95,8 +92,10 @@ const Auth = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            className="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-[#1db954] focus:border-[#1db954]"
           />
         </div>
+
         <div>
           <label
             htmlFor="password"
@@ -110,6 +109,7 @@ const Auth = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            className="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-[#1db954] focus:border-[#1db954]"
           />
         </div>
 
@@ -126,6 +126,7 @@ const Auth = () => {
               value={userType}
               onChange={(e) => setUserType(e.target.value)}
               required
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring-[#1db954] focus:border-[#1db954]"
             >
               <option value="user">User</option>
               <option value="merchant">Merchant</option>
@@ -133,10 +134,25 @@ const Auth = () => {
           </div>
         )}
 
-        <button type="submit" disabled={loading}>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-[#1db954] text-white p-2 rounded-lg shadow-md hover:bg-[#17a74c] transition disabled:bg-gray-400"
+        >
           {loading ? "Processing..." : isLogin ? "Sign In" : "Create Account"}
         </button>
       </form>
+
+      <div className="mt-4 text-center">
+        <button
+          onClick={toggleMode}
+          className="text-sm text-[#1db954] hover:underline"
+        >
+          {isLogin
+            ? "Don't have an account? Sign up"
+            : "Already have an account? Sign in"}
+        </button>
+      </div>
     </div>
   );
 };
