@@ -16,12 +16,13 @@ Food Fella is a dynamic platform that connects customers with restaurants offeri
 - Filter food based on dietary preferences.
 - Leave reviews and ratings for restaurants.
 
-![image](https://github.com/user-attachments/assets/8ad368bc-bc2f-480f-ad27-dab3765fe918)
-
-
 For restaurants, Food Fella provides:
 - A dashboard to list surplus food items.
 - Order management and tracking features.
+
+![image](https://github.com/user-attachments/assets/8ad368bc-bc2f-480f-ad27-dab3765fe918)
+
+
 
 
 
