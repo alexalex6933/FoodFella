@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Star, Clock } from 'lucide-react';
 import { mockRestaurants } from '../data/mockData';
 import Map from 'react-map-gl';
+import Footer from './Footer'
 
 const Home = () => {
   const [locationGranted, setLocationGranted] = useState<boolean | null>(null);
@@ -219,6 +220,7 @@ const Home = () => {
           </div>
         </div>
       </div>
+      <Footer/>
     </div>
   );
 };
