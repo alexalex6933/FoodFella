@@ -1,25 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Star, Clock } from 'lucide-react';
-// import { mockRestaurants, Restaurant } from '../data/mockData';
+import { mockRestaurants } from '../data/mockData';
 import Map from 'react-map-gl';
-import Footer from './Footer';
-
-//Importing supabase client
-import { supabase, Restaurant } from '../lib/supabase.ts';
 
 const Home = () => {
   const [locationGranted, setLocationGranted] = useState<boolean | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [isSpinning, setIsSpinning] = useState(false);
-  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<typeof mockRestaurants[0] | null>(null);
   const [spinningIndex, setSpinningIndex] = useState(0);
-
-  // Restaurant
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);  
 
   useEffect(() => {
     if (locationGranted === null) {
@@ -36,32 +27,7 @@ const Home = () => {
     }
   }, [locationGranted]);
 
-  useEffect(() => {
-    const fetchRestaurants = async () => {
-      try {
-        setLoading(true);
-        
-        const { data, error } = await supabase
-          .from('restaurants')
-          .select('*');
-        
-        if (error) throw error;
-        
-        setRestaurants(data || []);
-      } catch (err) {
-        console.error('Error fetching restaurants:', err);
-        setError('Failed to load restaurants');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRestaurants();
-  }, []);
-
   const handleSpin = () => {
-    if (restaurants.length === 0) return;
-    
     setIsSpinning(true);
     let duration = 3000;
     let interval = 100;
@@ -72,12 +38,12 @@ const Home = () => {
       const elapsed = now - startTime;
       
       if (elapsed < duration) {
-        setSpinningIndex(prev => (prev + 1) % restaurants.length);
+        setSpinningIndex(prev => (prev + 1) % mockRestaurants.length);
         setTimeout(spin, interval);
       } else {
         setIsSpinning(false);
-        const randomIndex = Math.floor(Math.random() * restaurants.length);
-        setSelectedRestaurant(restaurants[randomIndex]);
+        const randomIndex = Math.floor(Math.random() * mockRestaurants.length);
+        setSelectedRestaurant(mockRestaurants[randomIndex]);
       }
     };
 
@@ -173,72 +139,56 @@ const Home = () => {
           </button>
         </div>
 
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#1db954]"></div>
-          </div>
-        ) : error ? (
-          <div className="text-center text-red-500 py-8">{error}</div>
-        ) : restaurants.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">No restaurants found</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {restaurants.map((restaurant) => (
-              <Link
-                to={`/restaurant/${restaurant.id}`}
-                key={restaurant.id}
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-              >
-                <img
-                  src={restaurant.image}
-                  alt={restaurant.name}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">{restaurant.name}</h3>
-                    <div className="flex items-center space-x-1">
-                      <Star className="h-5 w-5 text-yellow-400 fill-current" />
-                      <span>{restaurant.rating}</span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">{restaurant.address}</p>
-                  <div className="flex items-center text-sm text-gray-600 mt-1">
-                    <Clock className="h-4 w-4 mr-1" />
-                    <span>{restaurant.availableHours.open} - {restaurant.availableHours.close}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {restaurant.cuisineType.map((type) => (
-                      <span
-                        key={type}
-                        className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
-                      >
-                        {type}
-                      </span>
-                    ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {mockRestaurants.map((restaurant) => (
+            <Link
+              to={`/restaurant/${restaurant.id}`}
+              key={restaurant.id}
+              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+            >
+              <img
+                src={restaurant.image}
+                alt={restaurant.name}
+                className="w-full h-48 object-cover"
+              />
+              <div className="p-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold">{restaurant.name}</h3>
+                  <div className="flex items-center space-x-1">
+                    <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                    <span>{restaurant.rating}</span>
                   </div>
                 </div>
-              </Link>
-            ))}
-          </div>
-        )}
+                <p className="text-sm text-gray-600 mt-1">{restaurant.address}</p>
+                <div className="flex items-center text-sm text-gray-600 mt-1">
+                  <Clock className="h-4 w-4 mr-1" />
+                  <span>{restaurant.availableHours.open} - {restaurant.availableHours.close}</span>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {restaurant.cuisineType.map((type) => (
+                    <span
+                      key={type}
+                      className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
+                    >
+                      {type}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
 
-        <div className="relative">
-        <div className="h-10"></div>
-          {/* Background Image (Underlay) */}
-          <img
-            src="https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg?cs=srgb&dl=pexels-chanwalrus-958545.jpg&fm=jpg"
-            alt="Background"
-            className="absolute inset-0 w-full h-full object-cover bg-black bg-opacity-50"
-          />
-          <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg overflow-hidden relative z-10">
+        <div className="mt-16 text-center">
+          <h2 className="text-2xl font-bold mb-8">Can't Decide? Let Us Pick For You!</h2>
+          <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="p-6">
-              {isSpinning && restaurants.length > 0 ? (
+              {isSpinning ? (
                 <div className="h-48 flex items-center justify-center">
                   <img
-                    src={restaurants[spinningIndex]?.image}
+                    src={mockRestaurants[spinningIndex].image}
                     alt="Spinning"
-                    className="w-full h-full object-cover animate-spin"
+                    className="w-full h-full object-cover animate-pulse"
                   />
                 </div>
               ) : selectedRestaurant ? (
@@ -256,12 +206,11 @@ const Home = () => {
                   <p className="text-gray-500">Click spin to find a restaurant</p>
                 </div>
               )}
-
               <button
                 onClick={handleSpin}
-                disabled={isSpinning || restaurants.length === 0}
+                disabled={isSpinning}
                 className={`mt-6 w-full bg-[#1db954] text-white py-3 px-6 rounded-full text-lg font-semibold hover:bg-[#169c46] transition-colors ${
-                  isSpinning || restaurants.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                  isSpinning ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
                 {isSpinning ? 'Spinning...' : 'Spin!'}
@@ -270,7 +219,6 @@ const Home = () => {
           </div>
         </div>
       </div>
-      <Footer/>
     </div>
   );
 };
