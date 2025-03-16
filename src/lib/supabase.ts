@@ -1,25 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = "https://kdvajegyubflfeejtsea.supabase.co/";
+const supabaseAnonKey =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkdmFqZWd5dWJmbGZlZWp0c2VhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIwNzc0MDUsImV4cCI6MjA1NzY1MzQwNX0.ro3M7HC3l-Dxtul2J4DezsBIBGbC1k2I9KRcJI-r2sw";
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-export interface Restaurant {
-  id: string;
-  name: string;
-  description: string;
-  address: string;
-  coordinates: {
-    lat: number;
-    lng: number;
-  };
-  image: string;
-  rating: number;
-  cuisineType: string[];
-  merchantId: string;
-  availableHours: {
-    open: string;
-    close: string;
-  };
-}
